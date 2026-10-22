@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#111020">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Бюджет">
@@ -373,7 +373,7 @@ body{position:fixed;inset:0;width:100%}
 body.setup nav.tabs,body.setup .fab,body.setup .month,body.setup [data-act="settings"]{visibility:hidden}
 .connect{margin-top:28px;text-align:left}
 .cn-icon{font-size:44px;margin-bottom:8px}
-.codebox{display:block;width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:12px;font-size:15px;font-family:ui-monospace,Menlo,monospace;resize:none;min-height:84px;word-break:break-all}
+.codebox{display:block;width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:12px;font-size:16px;font-family:ui-monospace,Menlo,monospace;resize:none;min-height:84px;word-break:break-all}
 @media (display-mode: standalone){:root[data-theme="light"] body::before{background:var(--accent);-webkit-backdrop-filter:none;backdrop-filter:none}}
 .cn-img{width:72px;height:72px;border-radius:17px;display:block;margin-bottom:12px}
 /* v14: fixed header (status-bar area counted once) and no empty strip under the tab bar */
@@ -406,6 +406,9 @@ html.stretch nav.tabs{bottom:calc(-1 * var(--below,0px))!important}
 html.stretch .fab{bottom:calc(76px + env(safe-area-inset-bottom,0px) - var(--below,0px))!important}
 html.stretch .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px) - var(--below,0px))!important}
 html.stretch .overlay{bottom:calc(-1 * var(--below,0px))!important}
+/* v20: never wider than the screen */
+html,body{max-width:100vw;overflow-x:hidden;touch-action:pan-y pinch-zoom}
+input,select,textarea{font-size:max(16px,1em)}
 </style>
 </head>
 <body>
@@ -472,7 +475,7 @@ let myId=null;
 /* ---------- categories ---------- */
 const GROUP_COLORS=['#6D5BD0','#D0577A','#2E86C1','#C98A12','#2BA37A','#9A5BC2','#D36D3A','#3E9BA8','#8A8F2E','#B04E9C','#5B7BD0','#C0504D','#4F9D69','#7B7F95'];
 const ICONS=['🛒','☕','🛵','🍽️','🍷','🏠','🔑','💡','🧹','🛋️','🚗','🚌','🚕','⛽','🔧','🅿️','✈️','💊','🩺','🦷','👶','🏫','🎨','🧸','👗','👟','💇','🧴','📱','🌐','📺','🎬','🎮','🏋️','🧶','📚','🎓','🎁','🎉','💝','🐾','🏦','🧾','🛡️','💸','📦','💼','💻','↩️','📈','💰','⭐'];
-const APP_VERSION='19';
+const APP_VERSION='20';
 const PEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
 const cfg=()=>S.cats||{expense:[],income:[]};
 const expGroups=()=>cfg().expense;
@@ -1453,7 +1456,7 @@ function drawCats(){
   h+=GAS?newAppBlock():phoneBlock();
   h+=backupBlock();
   h+='<h3 style="font-size:15px;margin:8px 0 8px">Шаблоны быстрого ввода</h3>'+(S.templates.length?'<div class="catedit">'+S.templates.map(x=>'<span>'+esc(x.title)+', '+money(x.amount)+'<button data-act="tpldel" data-id="'+esc(x.id)+'" aria-label="Удалить шаблон '+esc(x.title)+'">×</button></span>').join('')+'</div>':'<p class="small muted" style="margin:0 0 10px">Пока нет. При добавлении операции отметьте «Запомнить как шаблон».</p>');
-  openSheet(h+'<div class="acts"><button class="btn primary" data-act="close">Готово</button></div><p class="small muted" style="text-align:center;margin:14px 0 0">Версия приложения '+APP_VERSION+'</p><p class="small muted" style="text-align:center;margin:4px 0 0;font-size:11px;opacity:.7">'+esc(S.screenInfo||'')+'</p>');
+  openSheet(h+'<div class="acts"><button class="btn primary" data-act="close">Готово</button></div><p class="small muted" style="text-align:center;margin:14px 0 0">Версия приложения '+APP_VERSION+'</p>');
   $('#sheet').scrollTop=sc;
 }
 function newAppBlock(){
@@ -1467,8 +1470,7 @@ function newAppBlock(){
 function phoneBlock(){
   const st=LSC.get('stretch')==='1';
   return '<div class="splitbox" style="margin:4px 0 14px"><div style="font-weight:600;margin-bottom:4px">📱 Этот телефон</div><div class="small" style="margin-bottom:10px">Подключён к таблице как <b>'+esc(S.me||'…')+'</b>.</div>'+
-    '<label class="check" style="margin:0 0 6px"><input type="checkbox" id="f-stretch"'+(st?' checked':'')+'>Растянуть приложение до низа экрана (эксперимент)</label>'+
-    '<div class="small muted" style="margin:0 0 12px">Если после включения меню внизу пропадёт или обрежется — просто выключите.</div>'+
+
     '<button class="btn sm danger" data-act="disconnect">Отключить этот телефон</button></div>';
 }
 function backupBlock(){
@@ -1850,6 +1852,11 @@ window.addEventListener('resize',fitLayout);window.addEventListener('orientation
 if(window.ResizeObserver){const hd=document.querySelector('header');if(hd)new ResizeObserver(fitLayout).observe(hd)}
 if(window.visualViewport)visualViewport.addEventListener('resize',fitLayout);
 fitLayout();setTimeout(fitLayout,500);
+
+/* iOS: undo an accidental zoom after typing (keeps the app from sliding sideways) */
+document.addEventListener('focusout',e=>{if(!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;
+  const m=document.querySelector('meta[name=viewport]');if(!m)return;const c=m.getAttribute('content');
+  m.setAttribute('content',c.replace(/,?\s*maximum-scale=[^,]*/,'')+', maximum-scale=1');setTimeout(()=>m.setAttribute('content',c),300)});
 
 /* ---------- boot ---------- */
 function applyTheme(){const t=LSX.get('theme')||'dark';if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme}
