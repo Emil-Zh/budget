@@ -376,6 +376,17 @@ body.setup nav.tabs,body.setup .fab,body.setup .month,body.setup [data-act="sett
 .codebox{display:block;width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:12px;font-size:15px;font-family:ui-monospace,Menlo,monospace;resize:none;min-height:84px;word-break:break-all}
 @media (display-mode: standalone){:root[data-theme="light"] body::before{background:var(--accent);-webkit-backdrop-filter:none;backdrop-filter:none}}
 .cn-img{width:72px;height:72px;border-radius:17px;display:block;margin-bottom:12px}
+/* v14: fixed header (status-bar area counted once) and no empty strip under the tab bar */
+header{position:fixed!important;top:0!important;left:0;right:0;z-index:8;padding-top:env(safe-area-inset-top,0px);
+  background:color-mix(in srgb,var(--bg) 94%,transparent)!important}
+body::before{display:none!important}
+.scroller{padding-top:var(--hdr,calc(env(safe-area-inset-top,0px) + 64px))!important;bottom:calc(-1 * var(--vgap,0px))}
+nav.tabs{bottom:calc(-1 * var(--vgap,0px))}
+.fab{bottom:calc(76px + env(safe-area-inset-bottom,0px) - var(--vgap,0px))}
+.toast{bottom:calc(150px + env(safe-area-inset-bottom,0px) - var(--vgap,0px))}
+.overlay{bottom:calc(-1 * var(--vgap,0px))}
+@media (display-mode: standalone){:root[data-theme="light"] header{background:var(--accent)!important;color:#fff}
+  :root[data-theme="light"] header .icon-btn{color:#fff}:root[data-theme="light"] header .syncbar{color:#fff}}
 </style>
 </head>
 <body>
@@ -442,7 +453,7 @@ let myId=null;
 /* ---------- categories ---------- */
 const GROUP_COLORS=['#6D5BD0','#D0577A','#2E86C1','#C98A12','#2BA37A','#9A5BC2','#D36D3A','#3E9BA8','#8A8F2E','#B04E9C','#5B7BD0','#C0504D','#4F9D69','#7B7F95'];
 const ICONS=['🛒','☕','🛵','🍽️','🍷','🏠','🔑','💡','🧹','🛋️','🚗','🚌','🚕','⛽','🔧','🅿️','✈️','💊','🩺','🦷','👶','🏫','🎨','🧸','👗','👟','💇','🧴','📱','🌐','📺','🎬','🎮','🏋️','🧶','📚','🎓','🎁','🎉','💝','🐾','🏦','🧾','🛡️','💸','📦','💼','💻','↩️','📈','💰','⭐'];
-const APP_VERSION='13';
+const APP_VERSION='14';
 const PEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
 const cfg=()=>S.cats||{expense:[],income:[]};
 const expGroups=()=>cfg().expense;
@@ -1760,6 +1771,20 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&$('#overlay').classList.contains('open'))closeSheet();
   if(e.key==='Enter'&&e.target.id&&e.target.id.startsWith('add-')){e.preventDefault();$('[data-act="catadd"][data-k="'+e.target.id.slice(4)+'"]').click()}
 });
+
+/* ---------- layout: fixed header height and the iOS home-screen viewport gap ---------- */
+function fitLayout(){
+  const hd=document.querySelector('header');if(hd)document.documentElement.style.setProperty('--hdr',hd.offsetHeight+'px');
+  // iOS (home-screen app) sometimes reports a viewport shorter than the screen and leaves an empty strip at the bottom.
+  const sa=window.navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+  let gap=0;
+  if(sa&&window.screen){const portrait=innerHeight>=innerWidth;const sh=portrait?Math.max(screen.width,screen.height):Math.min(screen.width,screen.height);
+    const d=Math.round(sh-innerHeight);if(d>0&&d<=80)gap=d}
+  document.documentElement.style.setProperty('--vgap',gap+'px');
+}
+window.addEventListener('resize',fitLayout);window.addEventListener('orientationchange',()=>setTimeout(fitLayout,300));
+if(window.ResizeObserver){const hd=document.querySelector('header');if(hd)new ResizeObserver(fitLayout).observe(hd)}
+fitLayout();setTimeout(fitLayout,500);
 
 /* ---------- boot ---------- */
 function applyTheme(){const t=LSX.get('theme')||'dark';if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme}
