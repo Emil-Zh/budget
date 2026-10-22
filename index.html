@@ -408,6 +408,7 @@ html.stretch .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px) - var(--
 html.stretch .overlay{bottom:calc(-1 * var(--below,0px))!important}
 /* v20: never wider than the screen */
 html,body{max-width:100vw;overflow-x:hidden;touch-action:pan-y pinch-zoom}
+html.stretch,html.stretch body{overflow-y:visible!important}
 input,select,textarea{font-size:max(16px,1em)}
 </style>
 </head>
@@ -475,7 +476,7 @@ let myId=null;
 /* ---------- categories ---------- */
 const GROUP_COLORS=['#6D5BD0','#D0577A','#2E86C1','#C98A12','#2BA37A','#9A5BC2','#D36D3A','#3E9BA8','#8A8F2E','#B04E9C','#5B7BD0','#C0504D','#4F9D69','#7B7F95'];
 const ICONS=['🛒','☕','🛵','🍽️','🍷','🏠','🔑','💡','🧹','🛋️','🚗','🚌','🚕','⛽','🔧','🅿️','✈️','💊','🩺','🦷','👶','🏫','🎨','🧸','👗','👟','💇','🧴','📱','🌐','📺','🎬','🎮','🏋️','🧶','📚','🎓','🎁','🎉','💝','🐾','🏦','🧾','🛡️','💸','📦','💼','💻','↩️','📈','💰','⭐'];
-const APP_VERSION='20';
+const APP_VERSION='21';
 const PEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
 const cfg=()=>S.cats||{expense:[],income:[]};
 const expGroups=()=>cfg().expense;
@@ -1470,7 +1471,8 @@ function newAppBlock(){
 function phoneBlock(){
   const st=LSC.get('stretch')==='1';
   return '<div class="splitbox" style="margin:4px 0 14px"><div style="font-weight:600;margin-bottom:4px">📱 Этот телефон</div><div class="small" style="margin-bottom:10px">Подключён к таблице как <b>'+esc(S.me||'…')+'</b>.</div>'+
-
+    '<label class="check" style="margin:0 0 6px"><input type="checkbox" id="f-stretch"'+(st?' checked':'')+'>Растянуть приложение до низа экрана</label>'+
+    '<div class="small muted" style="margin:0 0 12px">Убирает пустую полосу под меню. Если меню после включения пропадёт или обрежется — выключите.</div>'+
     '<button class="btn sm danger" data-act="disconnect">Отключить этот телефон</button></div>';
 }
 function backupBlock(){

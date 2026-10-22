@@ -1,7 +1,7 @@
 // Family budget — offline support and reliable updates.
 // The app opens from the phone at once; a fresh copy is always checked in the background,
 // and when a new version is installed the open app reloads itself.
-const VERSION = 'budget-20';
+const VERSION = 'budget-21';
 const FONTS = 'budget-fonts';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 
