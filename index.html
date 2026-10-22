@@ -410,6 +410,13 @@ html.stretch .overlay{bottom:calc(-1 * var(--below,0px))!important}
 html,body{max-width:100vw;overflow-x:hidden;touch-action:pan-y pinch-zoom}
 html.stretch,html.stretch body{overflow-y:visible!important}
 input,select,textarea{font-size:max(16px,1em)}
+/* v22: iOS paints the strip below the app window with the page background —
+   give the page the tab bar colour so the strip looks like part of the menu */
+@media (display-mode: standalone){
+  html{background:var(--surface)!important}
+  body{background:transparent!important}
+  nav.tabs{background:var(--surface)!important;-webkit-backdrop-filter:none;backdrop-filter:none}
+}
 </style>
 </head>
 <body>
@@ -476,7 +483,7 @@ let myId=null;
 /* ---------- categories ---------- */
 const GROUP_COLORS=['#6D5BD0','#D0577A','#2E86C1','#C98A12','#2BA37A','#9A5BC2','#D36D3A','#3E9BA8','#8A8F2E','#B04E9C','#5B7BD0','#C0504D','#4F9D69','#7B7F95'];
 const ICONS=['🛒','☕','🛵','🍽️','🍷','🏠','🔑','💡','🧹','🛋️','🚗','🚌','🚕','⛽','🔧','🅿️','✈️','💊','🩺','🦷','👶','🏫','🎨','🧸','👗','👟','💇','🧴','📱','🌐','📺','🎬','🎮','🏋️','🧶','📚','🎓','🎁','🎉','💝','🐾','🏦','🧾','🛡️','💸','📦','💼','💻','↩️','📈','💰','⭐'];
-const APP_VERSION='21';
+const APP_VERSION='22';
 const PEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
 const cfg=()=>S.cats||{expense:[],income:[]};
 const expGroups=()=>cfg().expense;
@@ -1471,8 +1478,7 @@ function newAppBlock(){
 function phoneBlock(){
   const st=LSC.get('stretch')==='1';
   return '<div class="splitbox" style="margin:4px 0 14px"><div style="font-weight:600;margin-bottom:4px">📱 Этот телефон</div><div class="small" style="margin-bottom:10px">Подключён к таблице как <b>'+esc(S.me||'…')+'</b>.</div>'+
-    '<label class="check" style="margin:0 0 6px"><input type="checkbox" id="f-stretch"'+(st?' checked':'')+'>Растянуть приложение до низа экрана</label>'+
-    '<div class="small muted" style="margin:0 0 12px">Убирает пустую полосу под меню. Если меню после включения пропадёт или обрежется — выключите.</div>'+
+
     '<button class="btn sm danger" data-act="disconnect">Отключить этот телефон</button></div>';
 }
 function backupBlock(){
@@ -1821,6 +1827,10 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&e.target.id&&e.target.id.startsWith('add-')){e.preventDefault();$('[data-act="catadd"][data-k="'+e.target.id.slice(4)+'"]').click()}
 });
 
+LSC.del('stretch');
+// in the home-screen app, let iOS use the tab-bar colour for the strip under the app window
+function tintStrip(){const sa=window.navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);if(!sa)return;
+  const c=getComputedStyle(document.documentElement).getPropertyValue('--surface').trim();const m=document.querySelector('meta[name=theme-color]');if(m&&c)m.setAttribute('content',c)}
 /* ---------- layout: fixed header height and the iOS home-screen viewport gap ---------- */
 function safeInsets(){
   let p=document.getElementById('sa-probe');
@@ -1861,7 +1871,7 @@ document.addEventListener('focusout',e=>{if(!/^(INPUT|TEXTAREA|SELECT)$/.test(e.
   m.setAttribute('content',c.replace(/,?\s*maximum-scale=[^,]*/,'')+', maximum-scale=1');setTimeout(()=>m.setAttribute('content',c),300)});
 
 /* ---------- boot ---------- */
-function applyTheme(){const t=LSX.get('theme')||'dark';if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme}
+function applyTheme(){const t=LSX.get('theme')||'dark';if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme;tintStrip()}
 applyTheme();
 window.__fb={get S(){return S},get outbox(){return outbox}};
 if(GAS||CONN){try{const c=JSON.parse(LSX.get('cache')||'null');if(c&&c.tx){apply(c);S.fromCache=true;S.fresh=false}}catch(e){}}
