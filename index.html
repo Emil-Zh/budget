@@ -390,6 +390,11 @@ html.vgap main{padding-bottom:120px}
 @media (display-mode: standalone){:root[data-theme="light"] header{background:var(--accent)!important;color:#fff}
   :root[data-theme="light"] header .icon-btn{color:#fff}:root[data-theme="light"] header .syncbar{color:#fff}}
 nav.tabs{background:color-mix(in srgb,var(--surface) 97%,transparent)!important}
+/* v17: keep the tab bar inside the part of the screen iOS really shows */
+nav.tabs{bottom:var(--hide,0px)!important}
+html.vgap .fab{bottom:calc(76px + var(--hide,0px))}
+html.vgap .toast{bottom:calc(150px + var(--hide,0px))}
+.overlay{bottom:var(--hide,0px)}
 </style>
 </head>
 <body>
@@ -456,7 +461,7 @@ let myId=null;
 /* ---------- categories ---------- */
 const GROUP_COLORS=['#6D5BD0','#D0577A','#2E86C1','#C98A12','#2BA37A','#9A5BC2','#D36D3A','#3E9BA8','#8A8F2E','#B04E9C','#5B7BD0','#C0504D','#4F9D69','#7B7F95'];
 const ICONS=['🛒','☕','🛵','🍽️','🍷','🏠','🔑','💡','🧹','🛋️','🚗','🚌','🚕','⛽','🔧','🅿️','✈️','💊','🩺','🦷','👶','🏫','🎨','🧸','👗','👟','💇','🧴','📱','🌐','📺','🎬','🎮','🏋️','🧶','📚','🎓','🎁','🎉','💝','🐾','🏦','🧾','🛡️','💸','📦','💼','💻','↩️','📈','💰','⭐'];
-const APP_VERSION='16';
+const APP_VERSION='17';
 const PEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
 const cfg=()=>S.cats||{expense:[],income:[]};
 const expGroups=()=>cfg().expense;
@@ -1414,7 +1419,7 @@ function drawCats(){
   h+=GAS?newAppBlock():phoneBlock();
   h+=backupBlock();
   h+='<h3 style="font-size:15px;margin:8px 0 8px">Шаблоны быстрого ввода</h3>'+(S.templates.length?'<div class="catedit">'+S.templates.map(x=>'<span>'+esc(x.title)+', '+money(x.amount)+'<button data-act="tpldel" data-id="'+esc(x.id)+'" aria-label="Удалить шаблон '+esc(x.title)+'">×</button></span>').join('')+'</div>':'<p class="small muted" style="margin:0 0 10px">Пока нет. При добавлении операции отметьте «Запомнить как шаблон».</p>');
-  openSheet(h+'<div class="acts"><button class="btn primary" data-act="close">Готово</button></div><p class="small muted" style="text-align:center;margin:14px 0 0">Версия приложения '+APP_VERSION+'</p>');
+  openSheet(h+'<div class="acts"><button class="btn primary" data-act="close">Готово</button></div><p class="small muted" style="text-align:center;margin:14px 0 0">Версия приложения '+APP_VERSION+'</p><p class="small muted" style="text-align:center;margin:4px 0 0;font-size:11px;opacity:.7">'+esc(S.screenInfo||'')+'</p>');
   $('#sheet').scrollTop=sc;
 }
 function newAppBlock(){
@@ -1776,18 +1781,30 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ---------- layout: fixed header height and the iOS home-screen viewport gap ---------- */
+function safeInsets(){
+  let p=document.getElementById('sa-probe');
+  if(!p){p=document.createElement('div');p.id='sa-probe';p.style.cssText='position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)';document.body.appendChild(p)}
+  const cs=getComputedStyle(p);return {top:parseFloat(cs.paddingTop)||0,bottom:parseFloat(cs.paddingBottom)||0};
+}
 function fitLayout(){
-  const hd=document.querySelector('header');if(hd)document.documentElement.style.setProperty('--hdr',hd.offsetHeight+'px');
-  // iOS (home-screen app) sometimes makes the app window shorter than the screen; the home-indicator area is then
-  // outside the window, so the extra bottom spacing for it is not needed.
+  const root=document.documentElement;
+  const hd=document.querySelector('header');if(hd)root.style.setProperty('--hdr',hd.offsetHeight+'px');
   const sa=window.navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
-  let gap=0;
-  if(sa&&window.screen){const portrait=innerHeight>=innerWidth;const sh=portrait?Math.max(screen.width,screen.height):Math.min(screen.width,screen.height);
-    const d=Math.round(sh-innerHeight);if(d>0&&d<=80)gap=d}
-  document.documentElement.classList.toggle('vgap',gap>0);
+  const vv=window.visualViewport;
+  // part of the layout that iOS does not actually show at the bottom of the screen
+  let hidden=0;
+  if(vv)hidden=Math.round(innerHeight-(vv.height+vv.offsetTop));
+  if(sa&&window.screen&&!hidden){const portrait=innerHeight>=innerWidth;const sh=portrait?Math.max(screen.width,screen.height):Math.min(screen.width,screen.height);
+    const d=Math.round(sh-innerHeight);if(d>0&&d<=80)hidden=-1}      // window shorter than the screen: just drop the home-indicator padding
+  hidden=hidden>0&&hidden<=120?hidden:(hidden===-1?-1:0);
+  root.style.setProperty('--hide',(hidden>0?hidden:0)+'px');
+  root.classList.toggle('vgap',hidden!==0);
+  const ins=safeInsets();
+  S.screenInfo='экран '+(window.screen?Math.max(screen.width,screen.height):'?')+', окно '+innerHeight+', видно '+(vv?Math.round(vv.height)+'+'+Math.round(vv.offsetTop):'?')+', отступы '+ins.top+'/'+ins.bottom+', '+(sa?'с главного экрана':'в браузере')+', скрыто '+hidden;
 }
 window.addEventListener('resize',fitLayout);window.addEventListener('orientationchange',()=>setTimeout(fitLayout,300));
 if(window.ResizeObserver){const hd=document.querySelector('header');if(hd)new ResizeObserver(fitLayout).observe(hd)}
+if(window.visualViewport)visualViewport.addEventListener('resize',fitLayout);
 fitLayout();setTimeout(fitLayout,500);
 
 /* ---------- boot ---------- */
