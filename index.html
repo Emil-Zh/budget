@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Бюджет">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -399,6 +399,13 @@ html.vgap .toast{bottom:calc(150px + var(--hide,0px))}
 .sheet{transition:transform .22s cubic-bezier(.2,.8,.2,1);will-change:transform;touch-action:pan-y}
 .sheet.dragging{transition:none}
 .grab{padding:10px 0;margin:-10px auto 2px;width:60px;height:5px;box-sizing:content-box;background-clip:content-box;cursor:grab}
+/* v19: experiment — let the app draw below the window iOS gives it (translucent status bar) */
+html.stretch,html.stretch body{overflow:visible!important}
+html.stretch .scroller{bottom:calc(-1 * var(--below,0px))!important}
+html.stretch nav.tabs{bottom:calc(-1 * var(--below,0px))!important}
+html.stretch .fab{bottom:calc(76px + env(safe-area-inset-bottom,0px) - var(--below,0px))!important}
+html.stretch .toast{bottom:calc(150px + env(safe-area-inset-bottom,0px) - var(--below,0px))!important}
+html.stretch .overlay{bottom:calc(-1 * var(--below,0px))!important}
 </style>
 </head>
 <body>
@@ -465,7 +472,7 @@ let myId=null;
 /* ---------- categories ---------- */
 const GROUP_COLORS=['#6D5BD0','#D0577A','#2E86C1','#C98A12','#2BA37A','#9A5BC2','#D36D3A','#3E9BA8','#8A8F2E','#B04E9C','#5B7BD0','#C0504D','#4F9D69','#7B7F95'];
 const ICONS=['🛒','☕','🛵','🍽️','🍷','🏠','🔑','💡','🧹','🛋️','🚗','🚌','🚕','⛽','🔧','🅿️','✈️','💊','🩺','🦷','👶','🏫','🎨','🧸','👗','👟','💇','🧴','📱','🌐','📺','🎬','🎮','🏋️','🧶','📚','🎓','🎁','🎉','💝','🐾','🏦','🧾','🛡️','💸','📦','💼','💻','↩️','📈','💰','⭐'];
-const APP_VERSION='18';
+const APP_VERSION='19';
 const PEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
 const cfg=()=>S.cats||{expense:[],income:[]};
 const expGroups=()=>cfg().expense;
@@ -1458,7 +1465,10 @@ function newAppBlock(){
     '<div class="small muted" style="margin-top:6px">Откройте новое приложение на телефоне и вставьте этот код.</div></div></div>';
 }
 function phoneBlock(){
+  const st=LSC.get('stretch')==='1';
   return '<div class="splitbox" style="margin:4px 0 14px"><div style="font-weight:600;margin-bottom:4px">📱 Этот телефон</div><div class="small" style="margin-bottom:10px">Подключён к таблице как <b>'+esc(S.me||'…')+'</b>.</div>'+
+    '<label class="check" style="margin:0 0 6px"><input type="checkbox" id="f-stretch"'+(st?' checked':'')+'>Растянуть приложение до низа экрана (эксперимент)</label>'+
+    '<div class="small muted" style="margin:0 0 12px">Если после включения меню внизу пропадёт или обрежется — просто выключите.</div>'+
     '<button class="btn sm danger" data-act="disconnect">Отключить этот телефон</button></div>';
 }
 function backupBlock(){
@@ -1792,7 +1802,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{if(e.target.id==='f-photo'&&e.target.files&&e.target.files[0]){const f=e.target.files[0];$('#ph-prev').innerHTML='<div class="small muted">Обрабатываем фото…</div>';
   compressImage(f).then(d=>{sheetState.photo=d;sheetState.photoDel=false;$('#ph-prev').innerHTML='<img src="'+d+'" alt="">'}).catch(er=>{$('#ph-prev').innerHTML='';toast(er.message)});return}});
-document.addEventListener('change',e=>{if(e.target.id==='f-buy'){const on=e.target.checked;$('#buycat').style.display=on?'block':'none';$('#buyhint').textContent=on?'Расход запишется в этом месяце, но бюджет месяца не уменьшится — он оплачен из накоплений.':'Без галочки деньги вернутся в бюджет месяца — их можно будет потратить.'}});
+document.addEventListener('change',e=>{if(e.target.id==='f-stretch'){LSC.set('stretch',e.target.checked?'1':'0');fitLayout();drawCats();return}if(e.target.id==='f-buy'){const on=e.target.checked;$('#buycat').style.display=on?'block':'none';$('#buyhint').textContent=on?'Расход запишется в этом месяце, но бюджет месяца не уменьшится — он оплачен из накоплений.':'Без галочки деньги вернутся в бюджет месяца — их можно будет потратить.'}});
 document.addEventListener('input',e=>{
   if(e.target.id==='q'){S.q=e.target.value;$('#opsList').innerHTML=opsList();return}
   if(e.target.id==='f-cs'&&sheetState.kind==='carry'){const v=parseAmt(e.target.value)||0;$('#c-rest').textContent=money(Math.max(0,sheetState.L-v));return}
@@ -1828,7 +1838,13 @@ function fitLayout(){
   root.style.setProperty('--hide',(hidden>0?hidden:0)+'px');
   root.classList.toggle('vgap',hidden!==0);
   const ins=safeInsets();
-  S.screenInfo='экран '+(window.screen?Math.max(screen.width,screen.height):'?')+', окно '+innerHeight+', видно '+(vv?Math.round(vv.height)+'+'+Math.round(vv.offsetTop):'?')+', отступы '+ins.top+'/'+ins.bottom+', '+(sa?'с главного экрана':'в браузере')+', скрыто '+hidden;
+  const probe=u=>{const d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;width:1px;visibility:hidden;height:100'+u;document.body.appendChild(d);const h=Math.round(d.getBoundingClientRect().height);d.remove();return h};
+  let lvh='?';try{lvh=CSS.supports('height','100lvh')?probe('lvh'):'нет'}catch(e){}
+  const sh0=window.screen?Math.max(screen.width,screen.height):0;
+  const stretch=LSC.get('stretch')==='1'&&sa&&ins.top>0&&sh0>innerHeight;
+  root.classList.toggle('stretch',stretch);root.style.setProperty('--below',(stretch?Math.round(sh0-innerHeight):0)+'px');
+  if(stretch){root.classList.remove('vgap');root.style.setProperty('--hide','0px')}
+  S.screenInfo='экран '+(window.screen?Math.max(screen.width,screen.height):'?')+', окно '+innerHeight+', видно '+(vv?Math.round(vv.height)+'+'+Math.round(vv.offsetTop):'?')+', отступы '+ins.top+'/'+ins.bottom+', '+(sa?'с главного экрана':'в браузере')+', скрыто '+hidden+', vh '+probe('vh')+', lvh '+lvh+(stretch?', растянуто':'');
 }
 window.addEventListener('resize',fitLayout);window.addEventListener('orientationchange',()=>setTimeout(fitLayout,300));
 if(window.ResizeObserver){const hd=document.querySelector('header');if(hd)new ResizeObserver(fitLayout).observe(hd)}
